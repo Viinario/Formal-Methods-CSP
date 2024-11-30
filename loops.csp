@@ -1,0 +1,71 @@
+-- Aluno: Vinícius Nário Vasconcelos
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ===============================
+-- Representação de WHILE
+-- ===============================
+WHILE(cond, P) =  -- Define o comando WHILE que executa `P` enquanto a condição `cond` for verdadeira.
+    if cond       -- Verifica se a condição `cond` é verdadeira.
+    then P ; WHILE(cond, P)  -- Se `cond` for verdadeira, executa `P` e repete o WHILE.
+    else SKIP     -- Se `cond` for falsa, o processo termina e retorna `SKIP`.
+
+-- ===============================
+-- Representação de REPEAT-UNTIL
+-- ===============================
+REPEAT_UNTIL(P, cond) =  -- Define o comando REPEAT-UNTIL que executa `P` ao menos uma vez e verifica a condição no final.
+    P ;                 -- Executa o processo `P`.
+    if cond             -- Verifica se a condição `cond` é verdadeira.
+    then SKIP           -- Se `cond` for verdadeira, o processo termina retornando `SKIP`.
+    else REPEAT_UNTIL(P, cond)  -- Caso contrário, repete o REPEAT-UNTIL.
+
+-- ===============================
+-- Representação de FOR-EACH
+-- ===============================
+FOR_EACH(P, Seq) =  -- Define o comando FOR-EACH que aplica o processo `P` a cada elemento da sequência `Seq`.
+    if Seq == < > then SKIP  -- Se a sequência `Seq` estiver vazia, o processo termina retornando `SKIP`.
+    else                     -- Caso contrário, continua a execução.
+        let 
+            h = head(Seq)  -- Obtém o primeiro elemento da sequência `Seq` e o atribui à variável `h`.
+            t = tail(Seq)  -- Obtém o restante da sequência, removendo o primeiro elemento, e o atribui à variável `t`.
+        within 
+            P(h) ; FOR_EACH(P, t)  -- Executa o processo `P` com o elemento `h` e aplica recursivamente FOR-EACH ao restante `t`.
+
+-- ===============================
+-- Exemplo de WHILE: contador decrementando até 0
+-- ===============================
+channel decrement : Int -- Declara um canal chamado `decrement` para comunicar valores inteiros.
+channel done : Bool -- Declara um canal chamado `done` para comunicar valores booleanos.
+
+TEST_WHILE = -- Processo principal para testar o WHILE.
+    let 
+        WHILE_COUNTER(x) = -- Define um processo que decrementa o valor de `x` enquanto `x > 0`.
+            WHILE(x > 0, decrement!x -> let x = x - 1 within SKIP) ; done!true -> SKIP -- Enquanto `x > 0`, envia o valor de `x` pelo canal `decrement`, decrementa `x`, e continua; ao terminar, comunica `true` pelo canal `done`.
+    within
+        WHILE_COUNTER(5) -- Inicia o processo `WHILE_COUNTER` com o valor inicial de `x` igual a 5.
+
+-- ===============================
+-- Exemplo de REPEAT-UNTIL: envia valores até x == 3
+-- ===============================
+channel send : Int -- Declara um canal chamado `send` para comunicar valores inteiros.
+channel stop : Bool -- Declara um canal chamado `stop` para comunicar valores booleanos.
+
+TEST_REPEAT_UNTIL = -- Processo principal para testar o REPEAT-UNTIL.
+    let 
+        REPEAT_COUNTER(x) = -- Define um processo que envia valores inteiros a partir de `x` até `x == 3`.
+            REPEAT_UNTIL(send!x -> let x = x + 1 within SKIP, x == 3) ; stop!true -> SKIP -- Executa o processo enviando `x` pelo canal `send`, incrementa `x`, e repete até `x == 3`; após terminar, comunica `true` pelo canal `stop`.
+    within
+        REPEAT_COUNTER(0) -- Inicia o processo `REPEAT_COUNTER` com o valor inicial de `x` igual a 0.
+
+-- ===============================
+-- Exemplo de FOR-EACH: envia cada elemento de uma sequência
+-- ===============================
+channel output : Int -- Declara um canal chamado `output` para comunicar valores inteiros.
+
+TEST_FOR_EACH = -- Processo principal para testar o FOR-EACH.
+    let 
+        Seq = <1, 2, 3, 4, 5> -- Define uma sequência de valores inteiros: <1, 2, 3, 4, 5>.
+        P(x) = output!x -> SKIP -- Define um processo que envia o valor `x` pelo canal `output` e termina.
+    within
+        FOR_EACH(P, Seq) ; SKIP -- Aplica o processo `P` a cada elemento da sequência `Seq` e termina após processar todos os elementos.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,58 @@
+-- Aluno: Vinícius Nário Vasconcelos
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Definição dos canais
+channel pergunta : {1..5}   -- Define o canal `pergunta`, que envia ou recebe números inteiros de 1 a 5, representando 5 perguntas.
+channel resposta : {"A", "B", "C", "D", "E"} -- Define o canal `resposta`, que envia ou recebe uma das 5 opções de resposta (A, B, C, D ou E).
+channel pontuacao : {0..5}  -- Define o canal `pontuacao`, que envia ou recebe a pontuação acumulada ao final do quiz (valores entre 0 e 5).
+
+-- Definição das respostas corretas para cada pergunta
+-- Função que verifica se uma resposta fornecida é correta com base na pergunta.
+RespostaCorreta(p, r) =
+    if p == 1 then r == "A"           -- Se a pergunta é 1, a resposta correta é "A".
+    else if p == 2 then r == "B"      -- Se a pergunta é 2, a resposta correta é "B".
+    else if p == 3 then r == "C"      -- Se a pergunta é 3, a resposta correta é "C".
+    else if p == 4 then r == "D"      -- Se a pergunta é 4, a resposta correta é "D".
+    else if p == 5 then r == "E"      -- Se a pergunta é 5, a resposta correta é "E".
+    else false                        -- Para qualquer outro valor de pergunta, a resposta é considerada inválida (não deveria ocorrer).
+
+-- Processo do Quiz
+-- Representa o fluxo principal do quiz, onde perguntas e respostas são processadas.
+Quiz(pontos, rodada) =
+    if rodada == 5 then               -- Verifica se o quiz já atingiu 5 rodadas (fim do jogo).
+        pontuacao!pontos -> STOP      -- Se atingiu, envia a pontuação final pelo canal `pontuacao` e finaliza o processo com `STOP`.
+    else                              -- Caso contrário, continua processando perguntas e respostas.
+        pergunta?p ->                 -- Recebe o número da pergunta (1 a 5) pelo canal `pergunta`.
+        resposta?r ->                 -- Recebe a resposta fornecida pelo usuário (A, B, C, D ou E) pelo canal `resposta`.
+        if RespostaCorreta(p, r) then -- Verifica se a resposta é correta usando a função `RespostaCorreta`.
+            Quiz(pontos + 1, rodada + 1)  -- Se correta, incrementa a pontuação em 1 e avança para a próxima rodada.
+        else
+            Quiz(pontos, rodada + 1)      -- Se incorreta, mantém a pontuação e avança para a próxima rodada.
+
+-- Processo inicial
+QUIZ = Quiz(0, 0) -- Inicializa o processo com pontuação zero e na rodada 0.
+
+-- Verificações para o processo QUIZ
+
+-- Teste de determinismo: verifica se o processo não apresenta comportamentos não determinísticos.
+assert QUIZ :[ deterministic ]
+
+-- Teste de deadlock: verifica se o processo não entra em um estado de inatividade permanente, ou seja, onde nenhum evento futuro possa ocorrer. 
+-- Neste caso, o processo finaliza corretamente com `STOP`, e a verificação assegura que ele não entra em um loop infinito.
+-- Uma falha indica sucesso, ou seja, confirma que o programa finaliza corretamente após as 5 perguntas.
+assert QUIZ :[ deadlock free ]
+
+-- Processo de traço esperado
+-- Representa a sequência específica de eventos esperados em um jogo perfeito (todas as respostas corretas).
+SPEC = 
+    pergunta.1 -> resposta."A" ->     -- Recebe a pergunta 1 e a resposta correta "A".
+    pergunta.2 -> resposta."B" ->     -- Recebe a pergunta 2 e a resposta correta "B".
+    pergunta.3 -> resposta."C" ->     -- Recebe a pergunta 3 e a resposta correta "C".
+    pergunta.4 -> resposta."D" ->     -- Recebe a pergunta 4 e a resposta correta "D".
+    pergunta.5 -> resposta."E" ->     -- Recebe a pergunta 5 e a resposta correta "E".
+    pontuacao!5 -> STOP               -- Envia a pontuação máxima (5) pelo canal `pontuacao` e finaliza o processo.
+
+-- Verificação de refinamento de traços
+-- Garante que o processo `QUIZ` pode gerar exatamente o traço definido pelo processo `SPEC`.
+assert QUIZ [T= SPEC
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

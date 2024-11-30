@@ -1,0 +1,39 @@
+-- Aluno: Vinícius Nário Vasconcelos
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Questão 1: três dias da semana
+
+-- Definição do datatype para ações da semana
+datatype ACAO = ACORDAR | TOMAR_CAFE | TRABALHAR | ALMOCAR | ESTUDAR | DORMIR | EXERCITAR | LAZER | JANTAR
+
+-- Declaração do canal único para comunicar ações
+channel realizar : ACAO
+
+-- Processos para cada dia da semana
+SEGUNDA = realizar.ACORDAR -> realizar.TOMAR_CAFE -> realizar.TRABALHAR -> realizar.ALMOCAR -> realizar.ESTUDAR -> realizar.JANTAR -> realizar.DORMIR -> SKIP
+TERCA = realizar.ACORDAR -> realizar.TOMAR_CAFE -> realizar.TRABALHAR -> realizar.ALMOCAR -> realizar.EXERCITAR -> realizar.LAZER -> realizar.JANTAR -> realizar.DORMIR -> SKIP
+QUARTA = realizar.ACORDAR -> realizar.TOMAR_CAFE -> realizar.TRABALHAR -> realizar.ALMOCAR -> realizar.LAZER -> realizar.JANTAR -> realizar.DORMIR -> SKIP
+
+-- Processo que organiza os dias da semana
+SEMANA = SEGUNDA ; TERCA ; QUARTA ; SEMANA
+
+-- Asserção para verificar se está livre de deadlock
+assert SEMANA :[deadlock free]
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Questão 2: Processo para uma máquina de café
+
+-- Declaração de tipo e canais
+datatype BEBIDA = CAFE | CAPPUCCINO | CHOCOLATE
+channel moeda : BEBIDA
+channel escolhe : BEBIDA
+channel serve : BEBIDA
+
+-- Processo principal da máquina de café
+MAQUINA_CAFE = 
+    moeda.CAFE -> escolhe.CAFE -> serve.CAFE -> MAQUINA_CAFE
+    [] moeda.CAPPUCCINO -> escolhe.CAPPUCCINO -> serve.CAPPUCCINO -> MAQUINA_CAFE
+    [] moeda.CHOCOLATE -> escolhe.CHOCOLATE -> serve.CHOCOLATE -> MAQUINA_CAFE
+
+-- Asserção para verificar se está livre de deadlock
+assert MAQUINA_CAFE :[deadlock free]
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
