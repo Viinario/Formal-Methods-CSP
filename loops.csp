@@ -61,11 +61,10 @@ TEST_REPEAT_UNTIL = -- Processo principal para testar o REPEAT-UNTIL.
 -- ===============================
 channel output : Int -- Declara um canal chamado `output` para comunicar valores inteiros.
 
-TEST_FOR_EACH = -- Processo principal para testar o FOR-EACH.
+print TEST_FOR_EACH = -- Processo principal para testar o FOR-EACH.
     let 
         Seq = <1, 2, 3, 4, 5> -- Define uma sequência de valores inteiros: <1, 2, 3, 4, 5>.
         P(x) = output!x -> SKIP -- Define um processo que envia o valor `x` pelo canal `output` e termina.
     within
         FOR_EACH(P, Seq) ; SKIP -- Aplica o processo `P` a cada elemento da sequência `Seq` e termina após processar todos os elementos.
-
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
