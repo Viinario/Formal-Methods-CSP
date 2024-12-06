@@ -78,6 +78,11 @@ Pagenda(contatos) =
 			Pagenda(mod(contatos,n,t_atual,t_novo))
 	[]
 	card(contatos) < MAX & -- verifica se é possivel adicionar na agenda atual (Limite de Memoria)
-		migrar?a -> Pagenda(unir_agendas(a, contatos))	-- Escolhe a agenda para realizar o merge 
-		-- retorna ao processo inicial com a nova agenda (agenda escolhida + agenda atual)
-	
+		migrar?a ->
+			if card(a) <= MAX then -- verifica se a agenda escolhida é valida para realizar o merge
+			    if card(unir_agendas(a, contatos)) <= MAX then -- Verifica se o merge não cria uma agenda maior que o limite difinido pelo MAX
+					Pagenda(unir_agendas(a, contatos)) -- Faz o merge das agendas
+				else
+					Pagenda(contatos) -- Não faz o merge das agendas (DEFINA COMO STOP para ver no :probe AGENDA melhor)
+			else
+				Pagenda(contatos) -- Não faz o merge das agendas (DEFINA COMO STOP para ver no :probe AGENDA melhor)
