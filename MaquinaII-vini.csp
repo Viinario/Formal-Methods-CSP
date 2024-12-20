@@ -5,24 +5,29 @@ datatype EstadoAviso = ATIVO | INATIVO
 
 -- Declaração de canais
 channel sensorRodovia : EstadoSensor -- Canal para o estado do sensor da rodovia
-channel sensorDemanda, sensorPassagem : EstadoSensor -- Canais para sensores da rampa
+channel sensorDemanda, sensorPassagem, sensorFimFila : EstadoSensor -- Canais para sensores da rampa
 channel semaforo : EstadoSemaforo -- Canal para o estado do semáforo
 channel sinalAviso : EstadoAviso -- Canal para o estado do sinal de aviso
 
 ControladorRampa = sensorRodovia?r ->
 	(
 	    if r == OFF then
-	        sinalAviso!INATIVO -> semaforo!VERDE -> ControladorRampa
-
+	        sinalAviso!INATIVO -> semaforo!VERDE -> sensorFimFila!OFF -> ControladorRampa
 	    else
 	        sinalAviso!ATIVO -> semaforo!VERMELHO -> 
             (
 	        	sensorDemanda?d -> 
 	        	(
 	        		if d == ON then
-	        			semaforo!VERDE -> sensorDemanda!OFF -> semaforo!VERMELHO -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
-                        |~|
-                        semaforo!VERDE -> sensorDemanda!OFF -> sensorDemanda!ON -> sensorDemanda!OFF ->  semaforo!VERMELHO -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
+					    (
+							sensorFimFila?s ->
+							(
+								if s == OFF then
+								semaforo!VERDE -> sensorDemanda!OFF -> semaforo!VERMELHO -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
+								else
+								semaforo!VERDE -> sensorDemanda!OFF -> sensorDemanda!ON -> sensorDemanda!OFF ->  semaforo!VERMELHO -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa	
+							)						
+						)
 	        		else
 	        			ControladorRampa
 	        	)

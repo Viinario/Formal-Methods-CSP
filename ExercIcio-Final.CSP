@@ -1,0 +1,114 @@
+-- Declaração dos tipos utilizados no modelo
+datatype EstadoSensor = ON | OFF -- Sensores podem estar ligados (ON) ou desligados (OFF)
+datatype EstadoSemaforo = VERDE | VERMELHO -- Semáforo pode estar VERDE (liberando carros) ou VERMELHO (bloqueando)
+datatype EstadoAviso = ATIVO | INATIVO -- Sinal de aviso pode estar ATIVO (piscando) ou INATIVO (desligado)
+
+-- Declaração dos canais de comunicação entre os processos
+channel sensorRodovia : EstadoSensor -- Canal que comunica o estado do sensor principal da rodovia
+channel sensorDemanda, sensorPassagem, sensorFimFila : EstadoSensor -- Canais para comunicação de estado dos sensores de rampa
+channel semaforo : EstadoSemaforo -- Canal para definir o estado do semáforo
+channel sinalAviso : EstadoAviso -- Canal para definir o estado do sinal de aviso
+
+-----------------------------------------MAQUINA-I---------------------------------------------------------------------------------------------------------------------------------
+-- Processo principal que controla a lógica da rampa de acesso
+ControladorRampaI = sensorRodovia?r -> -- Recebe o estado do sensor da rodovia (r)
+    (
+        if r == OFF then -- Caso o sensor da rodovia esteja desligado
+            sinalAviso!INATIVO -> -- O sinal de aviso é definido como INATIVO
+            semaforo!VERDE -> -- O semáforo é configurado para VERDE, liberando carros
+            ControladorRampaI -- Reinicia o processo de controle
+        else -- Caso o sensor da rodovia esteja ligado
+            sinalAviso!ATIVO -> -- O sinal de aviso é ativado
+            semaforo!VERMELHO -> -- O semáforo é configurado para VERMELHO, bloqueando o trânsito
+            (
+                sensorDemanda?d -> -- Aguarda o estado do sensor de demanda da rampa
+                (
+                    if d == ON then -- Caso o sensor de demanda esteja ligado
+                        semaforo!VERDE -> -- O semáforo é configurado para VERDE, liberando carros
+                        sensorDemanda!OFF -> -- Desativa o sensor de demanda
+                        semaforo!VERMELHO -> -- Volta o semáforo para VERMELHO
+                        sensorPassagem!ON -> -- Ativa o sensor de passagem (indica que um veículo passou)
+                        sensorPassagem!OFF -> -- Desativa o sensor de passagem
+                        ControladorRampaI -- Reinicia o controle
+                    |~| -- Escolha interna: duas alternativas de comportamento
+                        semaforo!VERDE -> -- Configura o semáforo para VERDE, liberando carros
+                        sensorDemanda!OFF -> -- Desativa o sensor de demanda
+                        sensorDemanda!ON -> -- Reativa o sensor de demanda
+                        sensorDemanda!OFF -> -- Desativa novamente o sensor de demanda
+                        semaforo!VERMELHO -> -- Configura o semáforo para VERMELHO
+                        sensorPassagem!ON -> -- Ativa o sensor de passagem
+                        sensorPassagem!OFF -> -- Desativa o sensor de passagem
+                        ControladorRampaI -- Reinicia o controle
+                    else
+                        ControladorRampaI -- Caso o sensor de demanda esteja desligado, reinicia o controle
+                )
+            )
+    )
+
+-- Processo principal do sistema
+MAQUINAI = ControladorRampaI -- Inicia o processo de controle da rampa
+
+-- Verificações de propriedades do sistema
+assert MAQUINAI:[deadlock free] -- Garante que o sistema não entra em estados de deadlock, onde nenhum evento pode ocorrer
+assert MAQUINAI:[deterministic] -- Garante que o sistema não possui comportamentos conflitantes (estados não determinísticos)
+
+-----------------------------------------MAQUINA-II---------------------------------------------------------------------------------------------------------------------------------
+-- Processo principal que controla a lógica da rampa de acesso
+ControladorRampaII = sensorRodovia?r -> -- Recebe o estado do sensor principal da rodovia (r)
+    (
+        if r == OFF then -- Caso o sensor da rodovia esteja desligado
+            sinalAviso!INATIVO -> -- Configura o sinal de aviso como INATIVO
+            semaforo!VERDE -> -- Configura o semáforo para VERDE, liberando o fluxo
+            sensorFimFila!OFF -> -- Marca o sensor de fim de fila como desligado
+            ControladorRampaII -- Reinicia o controle
+        else -- Caso o sensor da rodovia esteja ligado
+            sinalAviso!ATIVO -> -- Configura o sinal de aviso como ATIVO
+            semaforo!VERMELHO -> -- Configura o semáforo para VERMELHO, bloqueando o fluxo
+            (
+                sensorDemanda?d -> -- Recebe o estado do sensor de demanda (d)
+                (
+                    if d == ON then -- Caso o sensor de demanda esteja ligado
+                        (
+                            sensorFimFila?s -> -- Recebe o estado do sensor de fim de fila (s)
+                            (
+                                if s == OFF then -- Caso o sensor de fim de fila esteja desligado
+                                    semaforo!VERDE -> -- Configura o semáforo para VERDE, liberando o fluxo
+                                    sensorDemanda!OFF -> -- Desativa o sensor de demanda
+                                    semaforo!VERMELHO -> -- Configura o semáforo para VERMELHO
+                                    sensorPassagem!ON -> -- Ativa o sensor de passagem (indica que um veículo passou)
+                                    sensorPassagem!OFF -> -- Desativa o sensor de passagem
+                                    ControladorRampaII -- Reinicia o controle
+                                else -- Caso o sensor de fim de fila esteja ligado
+                                    semaforo!VERDE -> -- Configura o semáforo para VERDE, liberando o fluxo
+                                    sensorDemanda!OFF -> -- Desativa o sensor de demanda
+                                    sensorDemanda!ON -> -- Reativa o sensor de demanda
+                                    sensorDemanda!OFF -> -- Desativa novamente o sensor de demanda
+                                    semaforo!VERMELHO -> -- Configura o semáforo para VERMELHO
+                                    sensorPassagem!ON -> -- Ativa o sensor de passagem
+                                    sensorPassagem!OFF -> -- Desativa o sensor de passagem
+                                    ControladorRampaII -- Reinicia o controle
+                            )						
+                        )
+                    else
+                        ControladorRampaII -- Caso o sensor de demanda esteja desligado, reinicia o controle
+                )
+            )
+    )
+
+-- Processo principal do sistema
+MAQUINAII = ControladorRampaII -- Inicia o processo de controle da rampa
+
+-- Verificações de propriedades do sistema
+assert MAQUINAII:[deadlock free] -- Garante que o sistema não entra em estados de deadlock, onde nenhum evento pode ocorrer
+assert MAQUINAII:[deterministic] -- Garante que o sistema não possui comportamentos conflitantes (estados não determinísticos)
+
+-----------------------------------------REFINAMENTOS---------------------------------------------------------------------------------------------------------------------------------
+
+-- Verificar refinamento de traços
+assert MAQUINAI [T= MAQUINAII\{sensorFimFila.ON, sensorFimFila.OFF}
+
+-- Verificar refinamento de falhas
+assert MAQUINAI [F= MAQUINAII\{sensorFimFila.ON, sensorFimFila.OFF}
+
+-- Verificar refinamento de falhas e divergências
+assert MAQUINAI [FD= MAQUINAII\{sensorFimFila.ON, sensorFimFila.OFF}
