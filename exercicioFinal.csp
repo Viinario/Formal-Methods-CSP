@@ -1,41 +1,45 @@
 -- Definição de tipos
+-- Definem os possíveis estados dos sensores, semáforo e sinal de aviso
 datatype EstadoSensor = ON | OFF -- Sensores podem estar ligados (ON) ou desligados (OFF)
 datatype EstadoSemaforo = VERDE | VERMELHO -- Semáforo pode estar VERDE (liberando carros) ou VERMELHO (bloqueando)
 datatype EstadoAviso = ATIVO | INATIVO -- Sinal de aviso pode estar ATIVO (piscando) ou INATIVO (desligado)
 
 -- Declaração de canais
-channel sensorRodovia, sensorDemanda, sensorPassagem, sensorFimFila : EstadoSensor -- Canais para estados dos sensores
+-- Representam os canais de comunicação entre os sensores e os processos
+channel sensorRodovia, sensorDemanda, sensorPassagem : EstadoSensor -- Canais para estados dos sensores
 channel semaforo : EstadoSemaforo -- Canal para comunicação do estado do semáforo
 channel sinalAviso : EstadoAviso -- Canal para comunicação do estado do sinal de aviso
 
+--------------------------------------------Maquina I (Abstrata)-------------------------------------------------------------------------------------------------------------------------------
 -- Processo inicial: configuração do estado inicial do sistema
+-- Define os estados iniciais do sistema e direciona para o controle do semáforo
 RampaControle = 
     sensorRodovia.OFF -> semaforo.VERDE -> sinalAviso.INATIVO -> ControleSemaforo -- Estado inicial com rodovia desligada
     [] sensorRodovia.ON -> semaforo.VERMELHO -> sinalAviso.ATIVO -> ControleSemaforo -- Estado inicial com rodovia ligada
 
 -- Controle do Semáforo: gerencia o fluxo de carros com base no estado dos sensores
 ControleSemaforo =
+    -- Quando o sensor de demanda detecta um carro na rampa
     sensorDemanda.ON -> 
-        (sensorRodovia.ON -> sensorFimFila.OFF -> 
-            semaforo.VERDE -> sensorPassagem.ON -> -- Semáforo permite a passagem do carro
-            sensorPassagem.OFF -> semaforo.VERMELHO -> -- Semáforo muda para VERMELHO após o carro passar
+        -- Primeira escolha: Apenas um carro passa
+        (semaforo.VERDE -> sensorPassagem.ON -> -- Semáforo está VERDE e permite a passagem de um carro
+            sensorPassagem.OFF -> semaforo.VERMELHO -> -- Após o carro passar, o semáforo muda para VERMELHO
             sensorDemanda.OFF -> ControleSemaforo -- Sensor de demanda é desligado e o processo retorna
-        [] sensorRodovia.ON -> sensorFimFila.ON -> 
-            semaforo.VERDE -> sensorPassagem.ON -> -- Primeiro carro passa
-            sensorPassagem.OFF -> semaforo.VERDE -> -- Semáforo permanece VERDE para o segundo carro
-            sensorPassagem.ON -> sensorPassagem.OFF -> -- Segundo carro passa
-            semaforo.VERMELHO -> sensorDemanda.OFF -> ControleSemaforo -- Semáforo muda para VERMELHO após os dois carros
+        -- Segunda escolha: Dois carros passam consecutivamente
         [] semaforo.VERDE -> 
-            sensorPassagem.ON -> sensorPassagem.OFF -> -- Um carro passa e o sensor de passagem é desligado
-            semaforo.VERMELHO -> sensorDemanda.OFF -> ControleSemaforo) -- Semáforo muda para VERMELHO e o processo retorna
+            sensorPassagem.ON -> sensorPassagem.OFF -> -- O primeiro carro passa
+            semaforo.VERDE -> -- O semáforo permanece VERDE
+            sensorPassagem.ON -> sensorPassagem.OFF -> -- O segundo carro passa
+            semaforo.VERMELHO -> sensorDemanda.OFF -> ControleSemaforo) -- O semáforo muda para VERMELHO após os dois carros
 
 -- Sensores: gerenciam mudanças de estado do sistema com base no tráfego detectado
 Sensores = 
+    -- Quando o sensor da rodovia está desligado
     sensorRodovia.OFF -> semaforo.VERDE -> sinalAviso.INATIVO -> Sensores -- Rodovia OFF: Semáforo VERDE e aviso INATIVO
+    -- Quando o sensor da rodovia está ligado
     [] sensorRodovia.ON -> semaforo.VERMELHO -> sinalAviso.ATIVO -> Sensores -- Rodovia ON: Semáforo VERMELHO e aviso ATIVO
 
 -- Integração dos sensores e controle de rampa
--- Agora inclui explicitamente ControleSemaforo como parte do fluxo principal
 RampaCompleta =
     RampaControle; -- Configura o estado inicial
     Sensores; -- Integra o comportamento dos sensores
@@ -46,3 +50,4 @@ RampaCompleta =
 assert RampaCompleta:[deadlock free] -- Garante que o sistema não entra em estados onde nenhum evento pode ocorrer
 -- Verifica se o controle do semáforo é determinístico
 assert RampaCompleta:[deterministic] -- Garante que o controle do semáforo não possui estados conflitantes
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
