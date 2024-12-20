@@ -20,9 +20,9 @@ ControladorRampa = sensorRodovia?r ->
 	        	sensorDemanda?d -> 
 	        	(
 	        		if d == ON then
-	        			sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
+	        			semaforo!VERDE -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
                         |~|
-                        sensorPassagem!ON -> sensorPassagem!OFF -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
+                        semaforo!VERDE -> sensorPassagem!ON -> sensorPassagem!OFF -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
 	        		else
 	        			ControladorRampa
 	        	)
