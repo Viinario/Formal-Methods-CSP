@@ -1,0 +1,16 @@
+-- Declaração dos processos e tipos
+datatype EstadoSensor = ON | OFF
+datatype EstadoSemaforo = VERDE | VERMELHO
+datatype EstadoAviso = ATIVO | INATIVO
+
+channel sensorRodovia : EstadoSensor
+channel semaforo : EstadoSemaforo
+channel sinalAviso : EstadoAviso
+
+ControladorRampa(estadoSensorRodovia) = 
+    if estadoSensorRodovia == OFF then
+        sinalAviso!INATIVO -> semaforo!VERDE -> ControladorRampa(OFF)
+    else
+        sinalAviso!ATIVO -> semaforo!VERMELHO -> ControladorRampa(ON)
+
+MAIN = ControladorRampa(OFF)
