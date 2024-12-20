@@ -1,0 +1,19 @@
+-- Definição de tipos
+datatype EstadoSensor = ON | OFF -- Sensores podem estar ligados (ON) ou desligados (OFF)
+datatype EstadoSemaforo = VERDE | VERMELHO -- Semáforo pode estar VERDE (liberando carros) ou VERMELHO (bloqueando)
+datatype EstadoAviso = ATIVO | INATIVO -- Sinal de aviso pode estar ATIVO (piscando) ou INATIVO (desligado)
+
+-- Declaração de canais
+channel sensorRodovia : EstadoSensor -- Canal para o estado do sensor da rodovia
+channel sensorDemanda, sensorPassagem : EstadoSensor -- Canais para sensores da rampa
+channel semaforo : EstadoSemaforo -- Canal para o estado do semáforo
+channel sinalAviso : EstadoAviso -- Canal para o estado do sinal de aviso
+
+ControladorRampa(estadoSensorRodovia) = 
+	(
+		estadoSensorRodovia == EstadoSensor.OFF & sinalAviso!INATIVO -> semaforo!VERDE -> ControladorRampa
+		[]
+		estadoSensorRodovia == EstadoSensor.ON & sinalAviso!ATIVO -> semaforo!VERMELHO -> ControladorRampa
+	)
+
+MAIN = ControladorRampa(EstadoSensor.OFF)
