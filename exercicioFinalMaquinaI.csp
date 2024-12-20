@@ -13,8 +13,6 @@ channel sinalAviso : EstadoAviso -- Canal para o estado do sinal de aviso
 RampaControle =
     -- Quando o sensorRodovia está OFF, o semáforo começa em VERDE, e o sinal de aviso está INATIVO.
     sensorRodovia.OFF -> sinalAviso.INATIVO -> semaforo.VERDE -> ControleSemaforo
-    -- Quando o sensorRodovia está ON, o semáforo começa em VERMELHO, e o sinal de aviso está ATIVO.
-    [] sensorRodovia.ON -> sinalAviso.ATIVO -> semaforo.VERMELHO -> ControleSemaforo
 
 -- Controle do Semáforo: Gerencia o fluxo de carros e verifica o estado da rodovia
 ControleSemaforo =
