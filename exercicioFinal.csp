@@ -45,4 +45,4 @@ RampaCompleta =
 -- Verifica se o processo completo está livre de deadlocks
 assert RampaCompleta:[deadlock free] -- Garante que o sistema não entra em estados onde nenhum evento pode ocorrer
 -- Verifica se o controle do semáforo é determinístico
-assert ControleSemaforo:[deterministic] -- Garante que o controle do semáforo não possui estados conflitantes
+assert RampaCompleta:[deterministic] -- Garante que o controle do semáforo não possui estados conflitantes
