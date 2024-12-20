@@ -18,26 +18,48 @@ RampaControle =
     [] sensorRodovia.ON -> semaforo.VERMELHO -> sinalAviso.ATIVO -> ControleSemaforo -- Estado inicial com rodovia ligada
 
 -- Controle do Semáforo: gerencia o fluxo de carros com base no estado dos sensores
+-- Controle do Semáforo: gerencia o fluxo de carros com base no estado dos sensores
 ControleSemaforo =
-    -- Quando o sensor de demanda detecta um carro na rampa
     sensorDemanda.ON -> 
-        -- Primeira escolha: Apenas um carro passa
-        (semaforo.VERDE -> sensorPassagem.ON -> -- Semáforo está VERDE e permite a passagem de um carro
-            sensorPassagem.OFF -> semaforo.VERMELHO -> -- Após o carro passar, o semáforo muda para VERMELHO
-            sensorDemanda.OFF -> ControleSemaforo -- Sensor de demanda é desligado e o processo retorna
-        -- Segunda escolha: Dois carros passam consecutivamente
-        [] semaforo.VERDE -> 
-            sensorPassagem.ON -> sensorPassagem.OFF -> -- O primeiro carro passa
-            semaforo.VERDE -> -- O semáforo permanece VERDE
-            sensorPassagem.ON -> sensorPassagem.OFF -> -- O segundo carro passa
-            semaforo.VERMELHO -> sensorDemanda.OFF -> ControleSemaforo) -- O semáforo muda para VERMELHO após os dois carros
+        -- O processo começa quando o sensor de demanda detecta que um carro está presente na rampa.
+        -- Isso ativa o evento `sensorDemanda.ON`, que indica a presença de um carro esperando para entrar.
 
--- Sensores: gerenciam mudanças de estado do sistema com base no tráfego detectado
-Sensores = 
-    -- Quando o sensor da rodovia está desligado
-    sensorRodovia.OFF -> semaforo.VERDE -> sinalAviso.INATIVO -> Sensores -- Rodovia OFF: Semáforo VERDE e aviso INATIVO
-    -- Quando o sensor da rodovia está ligado
-    [] sensorRodovia.ON -> semaforo.VERMELHO -> sinalAviso.ATIVO -> Sensores -- Rodovia ON: Semáforo VERMELHO e aviso ATIVO
+        (semaforo.VERDE -> 
+            -- O semáforo muda para VERDE, permitindo que um carro passe pela rampa.
+            sensorPassagem.ON -> 
+            -- O sensor de passagem detecta que o carro começou a passar pela rampa.
+            sensorPassagem.OFF -> 
+            -- O sensor de passagem detecta que o carro terminou de passar pela rampa.
+            semaforo.VERMELHO -> 
+            -- O semáforo muda para VERMELHO, impedindo a passagem de outro carro.
+            ControleSemaforo 
+            -- Após concluir o fluxo, o controle retorna ao início para esperar um novo carro.
+        |~| 
+         -- Escolha não determinística: em vez de apenas um carro, dois carros podem passar consecutivamente.
+         semaforo.VERDE -> 
+            -- O semáforo muda para VERDE, permitindo que o primeiro carro passe pela rampa.
+            sensorPassagem.ON -> 
+            -- O sensor de passagem detecta que o primeiro carro começou a passar.
+            sensorPassagem.OFF -> 
+            -- O sensor de passagem detecta que o primeiro carro terminou de passar.
+            semaforo.VERDE -> 
+            -- O semáforo permanece VERDE, permitindo que o segundo carro passe.
+            sensorPassagem.ON -> 
+            -- O sensor de passagem detecta que o segundo carro começou a passar.
+            sensorPassagem.OFF -> 
+            -- O sensor de passagem detecta que o segundo carro terminou de passar.
+            semaforo.VERMELHO -> 
+            -- Após o segundo carro passar, o semáforo muda para VERMELHO.
+            ControleSemaforo)
+            -- O controle retorna ao início após concluir o fluxo para dois carros.
+
+-- Processo que gerencia os sensores e reage dinamicamente às condições da rodovia
+Sensores =
+    -- Sensor de rodovia OFF: o semáforo é configurado como VERDE e o sinal de aviso como INATIVO
+    sensorRodovia.OFF -> semaforo.VERDE -> sinalAviso.INATIVO -> Sensores
+    -- Sensor de rodovia ON: o semáforo é configurado como VERMELHO e o sinal de aviso como ATIVO
+    [] sensorRodovia.ON -> semaforo.VERMELHO -> sinalAviso.ATIVO -> Sensores
+    -- Interrupção (/) para reagir ao sensor de demanda ativado enquanto monitora a rodovia:
 
 -- Integração dos sensores e controle de rampa
 RampaCompleta =
