@@ -12,8 +12,11 @@ channel sinalAviso : EstadoAviso -- Canal para o estado do sinal de aviso
 ControladorRampa = sensorRodovia?r ->
 	(
 	    if r == OFF then
-	        sinalAviso!INATIVO -> semaforo!VERDE -> 
-	        (
+	        sinalAviso!INATIVO -> semaforo!VERDE -> ControladorRampa
+
+	    else
+	        sinalAviso!ATIVO -> semaforo!VERMELHO -> 
+            (
 	        	sensorDemanda?d -> 
 	        	(
 	        		if d == ON then
@@ -24,8 +27,6 @@ ControladorRampa = sensorRodovia?r ->
 	        			ControladorRampa
 	        	)
 	        )
-	    else
-	        sinalAviso!ATIVO -> semaforo!VERMELHO -> ControladorRampa
     )
 MAIN = ControladorRampa
 
