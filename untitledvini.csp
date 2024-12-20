@@ -28,3 +28,7 @@ ControladorRampa = sensorRodovia?r ->
 	        sinalAviso!ATIVO -> semaforo!VERMELHO -> ControladorRampa
     )
 MAIN = ControladorRampa
+
+-- Verificações de Propriedades
+assert MAIN:[deadlock free] -- Garante que o sistema não entra em estados onde nenhum evento pode ocorrer
+assert MAIN:[deterministic] -- Garante que o controle do semáforo não possui estados conflitantes
