@@ -3,14 +3,28 @@ datatype EstadoSensor = ON | OFF
 datatype EstadoSemaforo = VERDE | VERMELHO
 datatype EstadoAviso = ATIVO | INATIVO
 
-channel sensorRodovia : EstadoSensor
-channel semaforo : EstadoSemaforo
-channel sinalAviso : EstadoAviso
+-- Declaração de canais
+channel sensorRodovia : EstadoSensor -- Canal para o estado do sensor da rodovia
+channel sensorDemanda, sensorPassagem : EstadoSensor -- Canais para sensores da rampa
+channel semaforo : EstadoSemaforo -- Canal para o estado do semáforo
+channel sinalAviso : EstadoAviso -- Canal para o estado do sinal de aviso
 
-ControladorRampa(estadoSensorRodovia) = 
-    if estadoSensorRodovia == OFF then
-        sinalAviso!INATIVO -> semaforo!VERDE -> ControladorRampa(OFF)
-    else
-        sinalAviso!ATIVO -> semaforo!VERMELHO -> ControladorRampa(ON)
-
-MAIN = ControladorRampa(OFF)
+ControladorRampa = sensorRodovia?r ->
+	(
+	    if r == OFF then
+	        sinalAviso!INATIVO -> semaforo!VERDE -> 
+	        (
+	        	sensorDemanda?d -> 
+	        	(
+	        		if d == ON then
+	        			sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
+                        |~|
+                        sensorPassagem!ON -> sensorPassagem!OFF -> sensorPassagem!ON -> sensorPassagem!OFF -> ControladorRampa
+	        		else
+	        			ControladorRampa
+	        	)
+	        )
+	    else
+	        sinalAviso!ATIVO -> semaforo!VERMELHO -> ControladorRampa
+    )
+MAIN = ControladorRampa
