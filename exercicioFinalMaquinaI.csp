@@ -18,6 +18,15 @@ RampaControle =
 
 -- Controle do Semáforo: Gerencia o fluxo de carros e verifica o estado da rodovia
 ControleSemaforo =
+    -- Quando o sensorDemanda está OFF, o semáforo permanece em VERDE ou VERMELHO conforme o estado do SensorRodovia.
+    sensorDemanda.OFF ->
+        (sensorRodovia.ON ->
+            sinalAviso.ATIVO -> semaforo.VERMELHO -> ControleSemaforo
+        []
+         sensorRodovia.OFF ->
+            sinalAviso.INATIVO -> semaforo.VERDE -> ControleSemaforo)
+    []
+    -- Quando o sensorDemanda está ON, inicia o fluxo normal de passagem de carros.
     sensorDemanda.ON ->
         -- Escolha não determinística: passar um ou dois carros.
         (semaforo.VERDE -> 
