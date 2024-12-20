@@ -1,0 +1,42 @@
+-- Definição de tipos
+datatype EstadoSensor = ON | OFF
+datatype EstadoSemaforo = VERDE | VERMELHO
+datatype EstadoAviso = ATIVO | INATIVO
+
+-- Declaração de canais
+channel sensorRodovia, sensorDemanda, sensorPassagem : EstadoSensor
+channel semaforo : EstadoSemaforo
+channel sinalAviso : EstadoAviso
+
+-- Processo inicial
+-- O sistema começa com `sensorRodovia = OFF`, `semaforo = VERDE` e `sinalAviso = INATIVO`.
+RampaSemSensor = 
+    sensorRodovia.OFF -> semaforo.VERDE -> sinalAviso.INATIVO -> ControleSemaforo
+    [] sensorRodovia.ON -> semaforo.VERMELHO -> sinalAviso.ATIVO -> ControleSemaforo
+
+-- Controle do semáforo
+-- Quando `sensorDemanda.ON` (um carro na rampa):
+-- - O semáforo pode permitir a passagem de um carro (`sensorPassagem.ON`).
+-- - O semáforo pode permitir a passagem de dois carros consecutivamente, modelado por escolhas não-determinísticas.
+ControleSemaforo = 
+    sensorDemanda.ON ->
+        (semaforo.VERDE -> sensorPassagem.ON -> semaforo.VERMELHO -> sensorDemanda.OFF -> ControleSemaforo
+        [] semaforo.VERDE -> sensorPassagem.ON -> sensorPassagem.OFF -> semaforo.VERMELHO -> ControleSemaforo)
+
+-- Descrição do comportamento:
+-- 1. Inicialização:
+--    - O sistema começa com `sensorRodovia = OFF`, `semaforo = VERDE` e `sinalAviso = INATIVO`.
+-- 2. Sensor Rodovia:
+--    - Quando `sensorRodovia.ON`, o semáforo muda para `VERMELHO` e o sinal de aviso fica `ATIVO`.
+--    - Quando `sensorRodovia.OFF`, o semáforo volta para `VERDE` e o sinal de aviso fica `INATIVO`.
+-- 3. Controle de Entrada (Não-determinístico):
+--    - Quando `sensorDemanda.ON` (um carro na rampa):
+--      - O semáforo pode permitir a passagem de um carro (`sensorPassagem.ON`).
+--      - O semáforo pode permitir a passagem de dois carros consecutivamente, modelado por escolhas não-determinísticas (`[]`).
+-- 4. Sensor de Passagem:
+--    - Após passar pelo semáforo, `sensorPassagem.ON` sinaliza que um carro passou.
+--    - O semáforo volta a `VERMELHO` após o carro passar, aguardando nova ativação de `sensorDemanda`.
+
+assert RampaSemSensor :[deadlock free]
+
+assert RampaSemSensor :[deterministic]
