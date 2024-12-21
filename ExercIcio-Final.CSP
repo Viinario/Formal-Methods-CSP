@@ -1,3 +1,6 @@
+------------------------------GRUPO---------------------------------------------------------------------------------------------------------------------
+-- Lucas Burle e Vinícius Nário Vasconcelos.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Declaração dos tipos utilizados no modelo
 datatype EstadoSensor = ON | OFF -- Sensores podem estar ligados (ON) ou desligados (OFF)
 datatype EstadoSemaforo = VERDE | VERMELHO -- Semáforo pode estar VERDE (liberando carros) ou VERMELHO (bloqueando)
@@ -104,11 +107,27 @@ assert MAQUINAII:[deterministic] -- Garante que o sistema não possui comportame
 
 -----------------------------------------REFINAMENTOS---------------------------------------------------------------------------------------------------------------------------------
 
--- Verificar refinamento de traços
+-- Verifica refinamento de traços
+-- Este assert verifica se todos os traços (sequências de eventos visíveis) da MAQUINAII (com os eventos sensorFimFila escondidos)
+-- estão contidos nos traços da MAQUINAI. O hiding (\{sensorFimFila.ON, sensorFimFila.OFF}) remove eventos internos
+-- (que não fazem parte do comportamento externo esperado) da MAQUINAII para que seu comportamento externo
+-- seja comparável ao de MAQUINAI.
+-- É true porque MAQUINAII não introduz novos traços visíveis além daqueles permitidos pela MAQUINAI.
 assert MAQUINAI [T= MAQUINAII\{sensorFimFila.ON, sensorFimFila.OFF}
 
--- Verificar refinamento de falhas
+-- Verifica refinamento de falhas
+-- Este assert verifica se os conjuntos de eventos que MAQUINAII pode recusar após qualquer traço são subconjuntos
+-- dos que podem ser recusados pela MAQUINAI. Assim como no refinamento de traços, o hiding (\{sensorFimFila.ON, sensorFimFila.OFF})
+-- remove eventos internos (sensorFimFila), garantindo que apenas os eventos visíveis são analisados.
+-- É true porque os conjuntos de eventos que MAQUINAII pode recusar são equivalentes aos de MAQUINAI quando eventos internos são ocultados.
 assert MAQUINAI [F= MAQUINAII\{sensorFimFila.ON, sensorFimFila.OFF}
 
--- Verificar refinamento de falhas e divergências
+-- Verifica refinamento de falhas e divergências
+-- Este assert combina os refinamentos de traços e falhas, além de verificar a ausência de divergências (loops internos infinitos).
+-- O hiding (\{sensorFimFila.ON, sensorFimFila.OFF}) garante que os eventos internos (sensorFimFila) não interfiram no comportamento
+-- visível da MAQUINAII, permitindo comparações justas com a MAQUINAI.
+-- É true porque:
+-- 1. Todos os traços de MAQUINAII (sem eventos sensorFimFila) estão contidos nos traços de MAQUINAI.
+-- 2. Os conjuntos de falhas são equivalentes após o hiding.
+-- 3. MAQUINAII não introduz divergências além das permitidas por MAQUINAI.
 assert MAQUINAI [FD= MAQUINAII\{sensorFimFila.ON, sensorFimFila.OFF}
